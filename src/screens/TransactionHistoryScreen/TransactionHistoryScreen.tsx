@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList ,Text } from 'react-native';
 import { useTheme, Searchbar, Card } from 'react-native-paper';
-import { useAppSelector } from '../../store/hooks/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks/hooks';
 import TransactionItem from '../../components/TransactionItem';
 import { Transaction } from '../../types';
 import { spacing } from '../../themes/spacing';
+import { deleteTransaction } from '../../store/slices/transactionsSlice';
+import { RootStackParamList } from '../../types';
+import { NativeStackNavigationProp,  } from '@react-navigation/native-stack';
 
-const TransactionHistoryScreen: React.FC = () => {
+type TransactionHistoryScreenProps = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'TransactionHistory'>;
+};
+const TransactionHistoryScreen: React.FC<TransactionHistoryScreenProps> = ({navigation}) => {
   const { colors } = useTheme();
   const { transactions } = useAppSelector(state => state.transactions);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'debit' | 'credit'>('all');
+  const dispatch = useAppDispatch();
+  // console.log('Transactions:', transactions);
 
   const filteredTransactions = transactions
     .filter(t => {
@@ -23,7 +31,19 @@ const TransactionHistoryScreen: React.FC = () => {
       t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.bankName.toLowerCase().includes(searchQuery.toLowerCase())
     )
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .reverse();
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    navigation.navigate("AddExpense", { transactionItem : transaction });
+    console.log('Edit transaction:', transaction);
+  };
+
+  const handleDeleteTransaction = (transactionId: string) => {
+    // Implement your delete logic here
+    // For example:
+    dispatch(deleteTransaction(transactionId));
+    console.log('Delete transaction:', transactionId);
+  };
 
   return (
     <View style={[styles.container, { padding: spacing.medium }]}>
@@ -69,7 +89,12 @@ const TransactionHistoryScreen: React.FC = () => {
           data={filteredTransactions}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <TransactionItem transaction={item} key={item.id} />
+            <TransactionItem 
+              transaction={item} 
+              key={item.id}
+              onEdit={() => handleEditTransaction(item)}
+              onDelete={() => handleDeleteTransaction(item.id)}
+            />
           )}
           contentContainerStyle={styles.listContent}
         />

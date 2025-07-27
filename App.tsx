@@ -5,6 +5,8 @@ import { Provider } from 'react-redux';
 import { store, persistor } from './src/store'; 
 import AppNavigator from './src/navigations/AppNavigator';
 import { theme } from './src/themes';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 // import { initDatabase, loadTransactions } from './src/db/index';
 import { setTransactions } from './src/store/slices/transactionsSlice';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -46,7 +48,9 @@ const App: React.FC = () => {
         persistor={persistor}
       >
         <PaperProvider theme={{ ...DefaultTheme, colors: { ...DefaultTheme.colors } }}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
           <AppNavigator />
+        </GestureHandlerRootView>
         </PaperProvider>
       </PersistGate>
     </Provider>

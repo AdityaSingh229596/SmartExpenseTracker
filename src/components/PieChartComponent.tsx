@@ -22,21 +22,40 @@ const PieChartComponent: React.FC<PieChartComponentProps> = ({ transactions }) =
     return acc;
   }, {} as Record<string, number>);
 
-  const pieData = Object.entries(categoryData).map(([key, value], index) => ({
+  const getCategoryColor = (category: string): string => {
+    switch (category) {
+      case 'food':
+        return '#FF6384'; // red
+      case 'transport':
+        return '#36A2EB'; // blue
+      case 'shopping':
+        return '#FFCE56'; // yellow
+      case 'entertainment':
+        return '#9966FF'; // purple
+      case 'bills':
+        return '#FF9F40'; // orange
+      case 'health':
+        return '#4BC0C0'; // teal
+      case 'education':
+        return '#8BC34A'; // green
+      case 'income':
+        return '#00C853'; // dark green
+      default:
+        return '#9E9E9E'; // gray
+    }
+  };
+  
+
+  const pieData = Object.entries(categoryData).map(([key, value]) => ({
     key,
     value,
     svg: {
-      fill: [
-        colors.primary,
-        colors.secondary,
-        colors.error,
-        colors.warning,
-        colors.success,
-      ][index % 5],
+      fill: getCategoryColor(key),
       onPress: () => console.log('press', key),
     },
     arc: { outerRadius: '100%', padAngle: 0 },
   }));
+  
 
   return (
     <View style={styles.container}>

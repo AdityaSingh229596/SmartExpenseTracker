@@ -14,6 +14,7 @@ export const transactionsSlice = createSlice({
   initialState,
   reducers: {
     addTransaction: (state, action: PayloadAction<Transaction>) => {
+      console.log('Adding transaction:', action.payload);
       state.transactions.push(action.payload);
     },
     addTransactionInBulk: (state, action: PayloadAction<Transaction[]>) => {

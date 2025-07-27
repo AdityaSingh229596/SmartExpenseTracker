@@ -65,11 +65,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 
   const parseBankSMS = (msg: any) => {
   const text = msg.body;
-
   const amountRegex = /(?:Rs\.?|INR)\s?([\d,]+\.?\d{0,2})/i;
   const creditRegex = /credited/i;
   const debitRegex = /debited|spent|withdrawn/i;
-  const dateRegex = /\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/;
 
   const amountMatch = text.match(amountRegex);
   const type = creditRegex.test(text)
@@ -88,8 +86,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     type,
     date: parsedDate,
     bankName: getBankFromSender(msg.address),
-    description: text.slice(0, 120), // Short description preview
-    category: 'other', // You can later apply NLP or rules to detect actual category
+    description: text.slice(0, 120), 
+    category: 'other', 
     isFromSms: true,
   };
 };
@@ -103,27 +101,23 @@ const getBankFromSender = (sender: string) => {
   if (sender.includes('CANBNK')) return 'Canara Bank';
   return 'Unknown Bank';
 };
-
-
   // Calculate monthly expenses
-  const currentMonth = new Date().getMonth();
+  const currentMonth = moment().month()+1;
+  console.log('Current Month:', currentMonth, 'Transactions:', moment(transactions[0].date,"DD-MM-YYYY").format('M'));
   const monthlyExpenses = transactions
-    .filter(t => t.type === 'debit' && new Date(t.date).getMonth() === currentMonth)
+    .filter(t => t.type === 'debit' &&  moment(t.date,"DD-MM-YYYY").format('M') === currentMonth.toString())
     .reduce((sum, t) => sum + t.amount, 0);
 
   // Get last 5 transactions
-  const lastTransactions = [...transactions]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+  const lastTransactions = [...transactions].reverse().slice(0, 5);
 
   return (
     <View style={styles.container}>
       <ScrollView style={[styles.scrollView, { padding: spacing.medium }]}>
-        {/* Your existing card components */}
         {/* <Card style={[styles.card, { marginBottom: spacing.medium }]}>
           <Card.Content>
             <Text style={{ color: colors.primary }}>Total Balance</Text>
-            <Text style={styles.balanceText}>₹{totalBalance.toLocaleString()}</Text>
+            <Text style={styles.balanceText}>₹ 0</Text>
           </Card.Content>
         </Card> */}
 
@@ -141,7 +135,7 @@ const getBankFromSender = (sender: string) => {
           </Card.Content>
         </Card>
 
-        <Card style={styles.card}>
+        <Card style={[styles.card , { marginBottom: 40}]}>
           <Card.Content>
             <Text style={{ color: colors.primary, marginBottom: spacing.small }}>
               Recent Transactions
@@ -170,6 +164,12 @@ const getBankFromSender = (sender: string) => {
         onPress={() => navigation.navigate('AddExpense')}
         color={colors.onPrimary}
       />
+      {/* Loading Indicator */}
+      {loading && (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: colors.primary, marginBottom: spacing.small }} >Loading data...</Text>
+        </View>
+      )}
     </View>
   );
 };
