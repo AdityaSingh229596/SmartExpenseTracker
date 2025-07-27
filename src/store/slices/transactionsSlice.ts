@@ -16,6 +16,9 @@ export const transactionsSlice = createSlice({
     addTransaction: (state, action: PayloadAction<Transaction>) => {
       state.transactions.push(action.payload);
     },
+    addTransactionInBulk: (state, action: PayloadAction<Transaction[]>) => {
+      state.transactions = [...state.transactions, ...action.payload];
+    },    
     updateTransaction: (state, action: PayloadAction<Transaction>) => {
       const index = state.transactions.findIndex(t => t.id === action.payload.id);
       if (index !== -1) {
@@ -31,5 +34,5 @@ export const transactionsSlice = createSlice({
   },
 });
 
-export const { addTransaction, updateTransaction, deleteTransaction, setTransactions } = transactionsSlice.actions;
+export const { addTransaction, updateTransaction, deleteTransaction, setTransactions , addTransactionInBulk } = transactionsSlice.actions;
 export default transactionsSlice.reducer;

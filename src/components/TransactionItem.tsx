@@ -47,10 +47,10 @@ const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, onPress 
         </View>
 
         <View style={styles.textContainer}>
-          <Text style={[styles.description, { color: colors.text }]}>
+          <Text style={[styles.description, { color: colors.onSurface }]}>
             {transaction.description}
           </Text>
-          <Text style={[styles.details, { color: colors.textSecondary }]}>
+          <Text style={[styles.details, { color: colors.secondary }]}>
             {new Date(transaction.date).toLocaleDateString()} • {transaction.bankName}
           </Text>
         </View>

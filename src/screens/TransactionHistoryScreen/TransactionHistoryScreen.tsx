@@ -56,7 +56,7 @@ const TransactionHistoryScreen: React.FC = () => {
         <Text 
           style={[
             styles.filterText, 
-            filter === 'credit' && { color: colors.success, fontWeight: 'bold' }
+            filter === 'credit' && { color: colors.primary, fontWeight: 'bold' }
           ]}
           onPress={() => setFilter('credit')}
         >
@@ -69,7 +69,7 @@ const TransactionHistoryScreen: React.FC = () => {
           data={filteredTransactions}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <TransactionItem transaction={item} />
+            <TransactionItem transaction={item} key={item.id} />
           )}
           contentContainerStyle={styles.listContent}
         />

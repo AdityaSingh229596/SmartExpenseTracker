@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { useTheme, Card, Text, FAB } from 'react-native-paper'; // Add FAB to imports
 import PieChartComponent from '../../components/PieChartComponent';
 import TransactionItem from '../../components/TransactionItem';
 import { RootStackParamList } from '../../types';
-import { useAppSelector } from '../../store/hooks/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks/hooks';
 import { spacing } from '../../themes/spacing';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
+import SmsAndroid from 'react-native-get-sms-android';
+import moment from 'moment';
+import uuid from 'react-native-uuid';
+import { addTransaction ,addTransactionInBulk } from '../../store/slices/transactionsSlice';
 type DashboardScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Dashboard'>;
 };
@@ -15,10 +18,92 @@ type DashboardScreenProps = {
 const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   const { colors } = useTheme();
   const { transactions } = useAppSelector(state => state.transactions);
-  const { banks } = useAppSelector(state => state.banks);
+  const bankKeywords = ['HDFCBK', 'ICICIBK', 'AXISBK', 'SBIUPI', 'CITIBK','CANBNK', 'PNB', 'BOI', 'BOB', 'UBI', 'IDFCBK', 'KOTAKBK', 'YESBK', 'RBLBK'];
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const dispatch=useAppDispatch();
 
-  // Calculate total balance
-  const totalBalance = banks.reduce((sum, bank) => sum + bank.balance, 0);
+  useEffect(() => {
+    // Fetch bank SMS messages when the component mounts
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchBankSMS();
+    });
+    // Cleanup function to remove the listener
+    return unsubscribe;
+    } 
+  , [navigation]);
+
+  const fetchBankSMS = () => {
+    const filter = {
+      box: 'inbox',
+      maxCount: 500,
+    };
+
+    SmsAndroid.list(
+      JSON.stringify(filter),
+      (fail: string) => {
+        console.error('SMS List Error:', fail);
+        setLoading(false);
+      },
+      (count: number, smsList: any) => {
+        const parsed = JSON.parse(smsList);
+         console.log('SMS parsed:', parsed);
+        const financeMessages = parsed
+          .filter((msg: any) =>
+            bankKeywords.some((bank) => msg.address.includes(bank))
+          )
+          .map(parseBankSMS)
+          .filter(Boolean);
+        setMessages(financeMessages);
+        dispatch(addTransactionInBulk(financeMessages));
+        setLoading(false);
+      }
+    );
+  };
+
+  console.log('Parsed Messages:', messages);
+
+  const parseBankSMS = (msg: any) => {
+  const text = msg.body;
+
+  const amountRegex = /(?:Rs\.?|INR)\s?([\d,]+\.?\d{0,2})/i;
+  const creditRegex = /credited/i;
+  const debitRegex = /debited|spent|withdrawn/i;
+  const dateRegex = /\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/;
+
+  const amountMatch = text.match(amountRegex);
+  const type = creditRegex.test(text)
+    ? 'credit'
+    : debitRegex.test(text)
+    ? 'debit'
+    : 'unknown';
+
+  if (!amountMatch || type === 'unknown') return null;
+
+  const parsedDate = moment(msg.date).format('DD-MM-YYYY');
+
+  return {
+    id: uuid.v4(),
+    amount: parseFloat(amountMatch[1].replace(/,/g, '')),
+    type,
+    date: parsedDate,
+    bankName: getBankFromSender(msg.address),
+    description: text.slice(0, 120), // Short description preview
+    category: 'other', // You can later apply NLP or rules to detect actual category
+    isFromSms: true,
+  };
+};
+
+const getBankFromSender = (sender: string) => {
+  if (sender.includes('HDFC')) return 'HDFC Bank';
+  if (sender.includes('ICICI')) return 'ICICI Bank';
+  if (sender.includes('AXIS')) return 'Axis Bank';
+  if (sender.includes('SBIUPI')) return 'SBI Bank';
+  if (sender.includes('CITI')) return 'Citi Bank';
+  if (sender.includes('CANBNK')) return 'Canara Bank';
+  return 'Unknown Bank';
+};
+
 
   // Calculate monthly expenses
   const currentMonth = new Date().getMonth();
@@ -35,12 +120,12 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     <View style={styles.container}>
       <ScrollView style={[styles.scrollView, { padding: spacing.medium }]}>
         {/* Your existing card components */}
-        <Card style={[styles.card, { marginBottom: spacing.medium }]}>
+        {/* <Card style={[styles.card, { marginBottom: spacing.medium }]}>
           <Card.Content>
             <Text style={{ color: colors.primary }}>Total Balance</Text>
             <Text style={styles.balanceText}>₹{totalBalance.toLocaleString()}</Text>
           </Card.Content>
-        </Card>
+        </Card> */}
 
         <Card style={[styles.card, { marginBottom: spacing.medium }]}>
           <Card.Content>
