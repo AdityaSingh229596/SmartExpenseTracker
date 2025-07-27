@@ -18,7 +18,13 @@ export const transactionsSlice = createSlice({
       state.transactions.push(action.payload);
     },
     addTransactionInBulk: (state, action: PayloadAction<Transaction[]>) => {
-      state.transactions = [...state.transactions, ...action.payload];
+      const newTransactions = action.payload.filter(
+        newTxn => !state.transactions.some(
+          existingTxn => existingTxn.isFromSms && 
+                        existingTxn.description === newTxn.description
+        )
+      );
+      state.transactions = [...state.transactions, ...newTransactions];
     },    
     updateTransaction: (state, action: PayloadAction<Transaction>) => {
       const index = state.transactions.findIndex(t => t.id === action.payload.id);

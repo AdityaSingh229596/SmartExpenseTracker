@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { useTheme, Card, Text, FAB } from 'react-native-paper'; // Add FAB to imports
+import { useTheme, Card, Text, FAB } from 'react-native-paper';
 import PieChartComponent from '../../components/PieChartComponent';
 import TransactionItem from '../../components/TransactionItem';
 import { RootStackParamList } from '../../types';
@@ -20,25 +20,27 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   const { transactions } = useAppSelector(state => state.transactions);
   const bankKeywords = ['HDFCBK', 'ICICIBK', 'AXISBK', 'SBIUPI', 'CITIBK','CANBNK', 'PNB', 'BOI', 'BOB', 'UBI', 'IDFCBK', 'KOTAKBK', 'YESBK', 'RBLBK'];
   const [messages, setMessages] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const dispatch=useAppDispatch();
+  const { isAllPermissionsGranted } = useAppSelector(state => state.global);
 
   useEffect(() => {
-    // Fetch bank SMS messages when the component mounts
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchBankSMS();
-    });
-    // Cleanup function to remove the listener
+    let unsubscribe;
+    if (isAllPermissionsGranted){
+       unsubscribe = navigation.addListener('focus', () => {
+        fetchBankSMS();
+      });
+    }   
     return unsubscribe;
     } 
-  , [navigation]);
+  , [navigation, isAllPermissionsGranted]);
 
   const fetchBankSMS = () => {
     const filter = {
       box: 'inbox',
-      maxCount: 500,
+      maxCount: 100,
     };
-
+  
     SmsAndroid.list(
       JSON.stringify(filter),
       (fail: string) => {
@@ -47,15 +49,21 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
       },
       (count: number, smsList: any) => {
         const parsed = JSON.parse(smsList);
-         console.log('SMS parsed:', parsed);
+        const existingSmsIds = transactions
+          .filter(t => t.isFromSms)
+          .map(t => t.description?.slice(0, 60)); 
+  
         const financeMessages = parsed
-          .filter((msg: any) =>
-            bankKeywords.some((bank) => msg.address.includes(bank))
+          .filter((msg: any) => 
+            bankKeywords.some((bank) => msg.address.includes(bank)) &&
+            !existingSmsIds.includes(msg.body.slice(0, 60)) 
           )
           .map(parseBankSMS)
           .filter(Boolean);
-        setMessages(financeMessages);
-        dispatch(addTransactionInBulk(financeMessages));
+  
+        if (financeMessages.length > 0) {
+          dispatch(addTransactionInBulk(financeMessages));
+        }
         setLoading(false);
       }
     );
@@ -86,7 +94,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     type,
     date: parsedDate,
     bankName: getBankFromSender(msg.address),
-    description: text.slice(0, 120), 
+    description: text.slice(0, 60), 
     category: 'other', 
     isFromSms: true,
   };
@@ -101,13 +109,12 @@ const getBankFromSender = (sender: string) => {
   if (sender.includes('CANBNK')) return 'Canara Bank';
   return 'Unknown Bank';
 };
-  // Calculate monthly expenses
   const currentMonth = moment().month()+1;
-  console.log('Current Month:', currentMonth, 'Transactions:', moment(transactions[0].date,"DD-MM-YYYY").format('M'));
   const monthlyExpenses = transactions
     .filter(t => t.type === 'debit' &&  moment(t.date,"DD-MM-YYYY").format('M') === currentMonth.toString())
     .reduce((sum, t) => sum + t.amount, 0);
 
+  // console.log('Monthly Expenses:', monthlyExpenses , transactions);  
   // Get last 5 transactions
   const lastTransactions = [...transactions].reverse().slice(0, 5);
 
@@ -120,21 +127,18 @@ const getBankFromSender = (sender: string) => {
             <Text style={styles.balanceText}>₹ 0</Text>
           </Card.Content>
         </Card> */}
-
         <Card style={[styles.card, { marginBottom: spacing.medium }]}>
           <Card.Content>
             <Text style={{ color: colors.primary }}>Monthly Expenses</Text>
             <Text style={styles.expenseText}>₹{monthlyExpenses.toLocaleString()}</Text>
           </Card.Content>
         </Card>
-
         <Card style={[styles.card, { marginBottom: spacing.medium }]}>
           <Card.Content>
             <Text style={{ color: colors.primary }}>Spending by Category</Text>
             <PieChartComponent transactions={transactions} />
           </Card.Content>
         </Card>
-
         <Card style={[styles.card , { marginBottom: 40}]}>
           <Card.Content>
             <Text style={{ color: colors.primary, marginBottom: spacing.small }}>
@@ -157,7 +161,6 @@ const getBankFromSender = (sender: string) => {
         </Card>
       </ScrollView>
 
-      {/* Add Expense FAB */}
       <FAB
         style={[styles.fab, { backgroundColor: colors.primary }]}
         icon="plus"
